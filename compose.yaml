@@ -1,0 +1,7 @@
+﻿services:
+  xitira.simplefileserver.api:
+    image: xitira.simplefileserver.api
+    build:
+      context: .
+      dockerfile: src/Xitira.SimpleFileServer.Api/Dockerfile
+

@@ -43,14 +43,14 @@ jobs:
 
       - name: Build AOT for win-x64
         run: |
-          dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj \
-            -c Release \
-            -r win-x64 \
-            --self-contained true \
-            -p:PublishAot=true \
-            -p:Version=${{ needs.determine_version.outputs.version }} \
-            -o publish/win-x64 \
-            /p:DebugType=None \
+          dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishAot=true `
+            -p:Version=${{ needs.determine_version.outputs.version }} `
+            -o publish/win-x64 `
+            /p:DebugType=None `
             /p:DebugSymbols=false
 
       - name: Create zip archive

@@ -1,0 +1,96 @@
+
+name: Build and Release API
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g. 1.0.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  determine_version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - id: set-version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-release:
+    needs: determine_version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux-x64, win-x64]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj
+    
+    - name: Build AOT for ${{ matrix.platform }}
+      run: |
+        dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj \
+          -c Release \
+          -r ${{ matrix.platform }} \
+          --self-contained true \
+          -p:PublishAot=true \
+          -p:Version=${{ needs.determine_version.outputs.version }} \
+          -o publish/${{ matrix.platform }} \
+          /p:DebugType=None \
+          /p:DebugSymbols=false
+    
+    - name: Create zip archive
+      run: |
+        cd publish/${{ matrix.platform }}
+        if [ "${{ matrix.platform }}" == "win-x64" ]; then
+          # Make Windows executables have .exe extension
+          zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
+        else
+          # Make Linux executables executable
+          chmod +x Xitira.SimpleFileServer.Api
+          zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
+        fi
+        cd ../..
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}
+        path: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip
+  
+  create-release:
+    needs: [determine_version, build-and-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
+          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64.zip
+        tag_name: ${{ github.ref_name || format('v{0}', needs.determine_version.outputs.version) }}
+        name: Xitira.SimpleFileServer.Api v${{ needs.determine_version.outputs.version }}
+        generate_release_notes: true

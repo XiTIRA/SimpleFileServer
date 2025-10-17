@@ -120,7 +120,7 @@ jobs:
         path: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
   
   create-release:
-    needs: [determine_version, build-and-release]
+    needs: [determine_version, build-and-release-windows, build-and-release-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write

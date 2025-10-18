@@ -56,14 +56,9 @@ jobs:
       - name: Create zip archive
         run: |
           cd publish/win-x64
-          if [ "win-x64" == "win-x64" ]; then
-            # Make Windows executables have .exe extension
-            zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
-          else
-            # Make Linux executables executable
-            chmod +x Xitira.SimpleFileServer.Api
-            zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
-          fi
+
+            zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip *
+    
           cd ../..
 
       - name: Upload Build Artifacts
@@ -103,13 +98,9 @@ jobs:
     - name: Create zip archive
       run: |
         cd publish/linux-x64
-        if [ "linux-x64" == "win-x64" ]; then
-          # Make Windows executables have .exe extension
-          zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
-        else
-          # Make Linux executables executable
+
           chmod +x Xitira.SimpleFileServer.Api
-          zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-${{ matrix.platform }}.zip *
+          zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-64.zip *
         fi
         cd ../..
     

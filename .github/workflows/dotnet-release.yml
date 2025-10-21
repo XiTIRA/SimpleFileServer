@@ -39,11 +39,8 @@ jobs:
           dotnet-version: '9.0.x'
           
       - name: Build Client nuget package 
-        run: |
-          dotnet pack src/Xitira.SimpleFileServer.Client/Xitira.SimpleFileServer.Client.csproj -c Release -o publish/ -p:Version=${{ needs.determine_version.outputs.version }}
-          cd publish
-          ls
-        
+        run: dotnet pack src/Xitira.SimpleFileServer.Client/Xitira.SimpleFileServer.Client.csproj -c Release -o . -p:Version=${{ needs.determine_version.outputs.version }}
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:

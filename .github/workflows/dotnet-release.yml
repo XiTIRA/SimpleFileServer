@@ -83,7 +83,7 @@ jobs:
       run: |
         cd publish/linux-x64
         chmod +x Xitira.SimpleFileServer.Api
-        zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-64.zip *
+        zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip *
         cd ../..
 
     - name: Upload Build Artifacts

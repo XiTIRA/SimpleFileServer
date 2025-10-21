@@ -8,13 +8,25 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 
-Dictionary<string, string> shares = new Dictionary<string, string>();
-shares.Add("sh1", @"/home/rlaffey/Desktop/testShare/");
+var shares = new Dictionary<string, string>();
+var users = new Dictionary<string, UserPermisisons>();
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+
+var configShares = builder.Configuration.GetSection("Shares").Get<List<Share>>() ?? new List<Share>();
+foreach (var share in configShares)
+{
+    shares.Add(share.Name, share.Path);
+}
+
+var configUsers = builder.Configuration.GetSection("Users").Get<List<UserPermisisons>>() ?? new List<UserPermisisons>();
+foreach (var usr in configUsers)
+{
+    users.Add(usr.Username, usr);
+}
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SimpleFileServer";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SimpleFileServerUsers";
@@ -47,11 +59,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ShareRead", policy =>
         policy.RequireRole("User").RequireClaim("scope", "read")
             .AddRequirements(new ShareAccessRequirement()));
-    
+
     options.AddPolicy("ShareWrite", policy =>
         policy.RequireRole("User").RequireClaim("scope", "write")
             .AddRequirements(new ShareAccessRequirement()));
-    
+
     options.AddPolicy("ShareDelete", policy =>
         policy.RequireRole("User").RequireClaim("scope", "delete")
             .AddRequirements(new ShareAccessRequirement()));
@@ -110,43 +122,52 @@ var apiGroup = app.MapGroup("/v1");
 authGroup.MapPost("/login",
         ([FromBody] LoginModel login) =>
         {
-            // In a real app, validate credentials against a database
-            if (login.Username == "admin" && login.Password == "password")
+            var usr = users[login.Username] ?? null;
+            if (usr is null) return Results.Unauthorized();
+            if (usr.Password != login.Password) return Results.Unauthorized();
+            
+            var claims = new List<Claim>
             {
-                var claims = new List<Claim>
-                {
-                    new("sub", login.Username),
-                    new("name", login.Username),
-                    new("role", "Admin"),
-                    new("role", "User"),
-                    new("scope", "read"),
-                    new("scope", "write"),
-                    new("scope", "delete"),
-                    new("share", "sh1")
-                };
+                new("sub", login.Username),
+                new("name", login.Username)
+            };
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            foreach (var share in usr.Shares)
+                claims.Add(new Claim("share", share));
 
-                var token = new JwtSecurityToken(
-                    issuer: jwtIssuer,
-                    audience: jwtAudience,
-                    claims: claims,
-                    expires: DateTime.Now.AddHours(int.Parse(jwtExpiration)),
-                    signingCredentials: creds);
+            foreach (var role in usr.Roles)
+                claims.Add(new Claim("role", role));
 
-                return Results.Ok(new JwtSecurityTokenHandler().WriteToken(token));
-            }
+            foreach (var scope in usr.Scopes)
+                claims.Add(new Claim("scope", scope));
 
-            return Results.Unauthorized();
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
+                audience: jwtAudience,
+                claims: claims,
+                expires: DateTime.Now.AddHours(int.Parse(jwtExpiration)),
+                signingCredentials: creds);
+
+            var tokenModel = new TokenModel()
+            {
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                ExpiresIn = int.Parse(jwtExpiration),
+                Issued = DateTime.UtcNow
+            };
+
+            return Results.Ok(tokenModel);
         })
     .WithDescription("Generate a token for further access")
     .WithSummary("Login")
     .WithBadge("new")
     .WithTags("Auth")
     .Experimental()
-    .Produces<string>()
-    .Produces<string>(StatusCodes.Status404NotFound);
+    .Produces<TokenModel>()
+    .Produces<string>(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status401Unauthorized);
 
 
 apiGroup.MapPost("/file/mv/{share}/{*path}",
@@ -159,7 +180,7 @@ apiGroup.MapPost("/file/mv/{share}/{*path}",
             FileDestination fileDestination
         ) =>
         {
-            return Results.Ok($"moving {path} to {fileDestination.Path}");
+            return Results.Ok($"Not yet implimented");
         })
     .WithDescription("Move a file, returns the new path")
     .WithSummary("Move File")
@@ -179,7 +200,7 @@ apiGroup.MapPost("/file/cp/{share}/{*path}",
             FileDestination fileDestination
         ) =>
         {
-            return Results.Ok($"moving {path} to {fileDestination.Path}");
+            return Results.Ok($"Not yet implimented");
         })
     .WithDescription("Copy a file, returns the new path")
     .WithSummary("Copy File")
@@ -207,7 +228,7 @@ apiGroup.MapGet("/file/{share}/{*path}",
 
             if (!File.Exists(fullPath))
             {
-                return Results.NotFound("Directory does not exist.");
+                return Results.NotFound("File does not exist.");
             }
 
             byte[] fileBytes = System.IO.File.ReadAllBytes(fullPath);
@@ -413,8 +434,12 @@ apiGroup.MapPut("/dir/{share}/{*path}",
             try
             {
                 Directory.CreateDirectory(fullPath);
-            } catch {return Results.BadRequest("An error occurred while creating the directory.");}
-            
+            }
+            catch
+            {
+                return Results.BadRequest("An error occurred while creating the directory.");
+            }
+
             return Results.Ok(fullPath[shares[share].Length ..]);
         })
     .WithDescription("Creates a directory")
@@ -511,6 +536,18 @@ public class DirectoryListModel
     [Description("List of directories")] public List<string> Directories { get; set; } = new List<string>();
 }
 
+public class TokenModel
+{
+    [Description("JWT token for authentication")]
+    public string Token { get; set; }
+
+    [Description("Number of hours this token is valid for")]
+    public int ExpiresIn { get; set; }
+
+    [Description("Time this token was issued (UTC)")]
+    public DateTime Issued { get; set; }
+}
+
 public class ShareAccessRequirement : IAuthorizationRequirement
 {
 }
@@ -545,6 +582,19 @@ public class ShareAccessAuthorizationHandler : AuthorizationHandler<ShareAccessR
     }
 }
 
+public record UserPermisisons(
+    string Username,
+    string Password,
+    string[] Shares,
+    string[] Roles,
+    string[] Scopes
+);
+
+public record Share(
+    string Name,
+    string Path
+);
+
 [JsonSerializable(typeof(FormFile))]
 [JsonSerializable(typeof(FormFileCollection))]
 [JsonSerializable(typeof(IFormFileCollection))]
@@ -556,6 +606,7 @@ public class ShareAccessAuthorizationHandler : AuthorizationHandler<ShareAccessR
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(LoginModel))]
 [JsonSerializable(typeof(DirectoryListModel))]
+[JsonSerializable(typeof(TokenModel))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }

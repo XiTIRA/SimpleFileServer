@@ -5,11 +5,18 @@ using System.Text.Json;
 
 namespace Xitira.SimpleFileServer.Client;
 
+/// <summary>
+/// Client class for interacting with the SimpleFileServer API
+/// </summary>
 public class SimpleFileServerClient
 {
     private readonly HttpClient _httpClient;
-    private string? _token;
+    private TokenModel? _token;
 
+    /// <summary>
+    /// Creates a new client instance
+    /// </summary>
+    /// <param name="baseUrl">The base url of the service (ie, http://localhost:5050)</param>
     public SimpleFileServerClient(string baseUrl)
     {
         _httpClient = new HttpClient
@@ -26,9 +33,9 @@ public class SimpleFileServerClient
         var response = await _httpClient.PostAsJsonAsync("/auth/login", new LoginModel(username, password));
         
         if (!response.IsSuccessStatusCode) return false;
-        
-        _token = await response.Content.ReadAsStringAsync();
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+
+        _token = await response.Content.ReadFromJsonAsync<TokenModel>();
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token.Value.Token);
         
         return true;
     }
@@ -171,12 +178,51 @@ public class SimpleFileServerClient
     }
 }
 
+/// <summary>
+/// Login model for authenticating with the server
+/// </summary>
+/// <param name="Username">Username</param>
+/// <param name="Password">Password</param>
 public record struct LoginModel(string Username, string Password);
+/// <summary>
+/// Model to store file and directory listings
+/// </summary>
+/// <remarks>All files and directories contain the full path relative to the share</remarks>
 public class DirectoryListModel
 {
+    /// <summary>
+    /// List of files
+    /// </summary>
     public List<string> Files { get; set; } = new List<string>();
     
+    /// <summary>
+    /// List of directories
+    /// </summary>
     public List<string> Directories { get; set; } = new List<string>();
 }
+/// <summary>
+/// Payload for moving or copying a file
+/// </summary>
+/// <param name="Path">The target file location</param>
 public record FileDestination(
     string Path);
+
+
+/// <summary>
+/// Model for storing JWT token data
+/// </summary>
+public record struct TokenModel
+{
+    /// <summary>
+    /// The JWT token body
+    /// </summary>
+    public string Token { get; set; }
+    /// <summary>
+    /// Number of hours this token is valid for
+    /// </summary>
+    public int ExpiresIn { get; set; }
+    /// <summary>
+    /// THe time (in UTC) this token was issued
+    /// </summary>
+    public DateTime Issued { get; set; }
+}

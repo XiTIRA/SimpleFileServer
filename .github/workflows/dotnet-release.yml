@@ -39,10 +39,12 @@ jobs:
         dotnet-version: '9.0.x'        
         
     - name: Build AOT for win-x64
-      run: dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj -c Release -r win-x64  --self-contained true  -p:PublishAot=true  -p:Version=${{ needs.determine_version.outputs.version }} -o publish/win-x64 /p:DebugType=None /p:DebugSymbols=false
+      run: dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj -c Release -r win-x64  --self-contained true  -p:PublishAot=true  -p:Version=${{ needs.determine_version.outputs.version }} -o publish\win-x64\ /p:DebugType=None /p:DebugSymbols=false
 
     - name: Create Zip Archive
-      run: Compress-Archive -Path "publish\win-64\*" -DestinationPath "Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
+      run: |
+        dir 
+        Compress-Archive -Path "publish\win-64\*" -DestinationPath "Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
       shell: powershell
 
     - name: Upload Build Artifacts

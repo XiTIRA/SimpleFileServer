@@ -43,8 +43,9 @@ jobs:
 
     - name: Create Zip Archive
       run: |
-        dir 
-        Compress-Archive -Path "publish\win-64\*" -DestinationPath "Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
+        cd publish\win-x64\
+        dir
+        Compress-Archive -Path * -DestinationPath "..\..\Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
       shell: powershell
 
     - name: Upload Build Artifacts

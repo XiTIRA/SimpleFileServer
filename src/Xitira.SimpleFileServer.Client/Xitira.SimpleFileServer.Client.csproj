@@ -7,10 +7,8 @@
         <Title>Xitira SimpleFileServer Client</Title>
         <Authors>Xitira</Authors>
         <Description>Client for SimpleFileServer </Description>
-        <Version>1.0.1-prerelease</Version>
         <Copyright>Xitira</Copyright>
         <PackageProjectUrl>https://github.com/XiTIRA/SimpleFileServer</PackageProjectUrl>
-        <PackageLicenseUrl></PackageLicenseUrl>
         <RepositoryUrl>https://github.com/XiTIRA/SimpleFileServer</RepositoryUrl>
 
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

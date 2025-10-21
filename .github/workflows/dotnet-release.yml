@@ -36,16 +36,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '9.0.x'        
         
-    - name: Restore dependencies
-      run: dotnet restore src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj
-      
     - name: Build AOT for win-x64
       run: dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj -c Release -r win-x64  --self-contained true  -p:PublishAot=true  -p:Version=${{ needs.determine_version.outputs.version }} -o publish/win-x64 /p:DebugType=None /p:DebugSymbols=false
 
     - name: Create Zip Archive
-      run: Compress-Archive -Path "publish\win-64" -DestinationPath "Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
+      run: Compress-Archive -Path "publish\win-64\*" -DestinationPath "Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
       shell: powershell
 
     - name: Upload Build Artifacts
@@ -54,63 +51,60 @@ jobs:
         name: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64
         path: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64.zip
 
-
-  build-and-release-linux:
-    needs: determine_version
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '9.0.x'
-    
-    - name: Restore dependencies
-      run: dotnet restore src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj
-    
-    - name: Build AOT for linux-x64
-      run: |
-        dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj \
-          -c Release \
-          -r linux-x64 \
-          --self-contained true \
-          -p:PublishAot=true \
-          -p:Version=${{ needs.determine_version.outputs.version }} \
-          -o publish/linux-x64 \
-          /p:DebugType=None \
-          /p:DebugSymbols=false
-    
-    - name: Create zip archive
-      run: |
-        cd publish/linux-x64
-        chmod +x Xitira.SimpleFileServer.Api
-        zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-64.zip *
-        cd ../..
-    
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64
-        path: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
-  
-  create-release:
-    needs: [determine_version,  build-and-release-linux]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-    - name: Download all build artifacts
-      uses: actions/download-artifact@v4
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64.zip
-          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
-        tag_name: ${{ github.ref_name || format('v{0}', needs.determine_version.outputs.version) }}
-        name: Xitira.SimpleFileServer.Api v${{ needs.determine_version.outputs.version }}
-        generate_release_notes: true
+#
+#  build-and-release-linux:
+#    needs: determine_version
+#    runs-on: ubuntu-latest
+#    
+#    steps:
+#    - uses: actions/checkout@v4
+#    
+#    - name: Setup .NET
+#      uses: actions/setup-dotnet@v3
+#      with:
+#        dotnet-version: '9.0.x'
+#        
+#    - name: Build AOT for linux-x64
+#      run: |
+#        dotnet publish src/Xitira.SimpleFileServer.Api/Xitira.SimpleFileServer.Api.csproj \
+#          -c Release \
+#          -r linux-x64 \
+#          --self-contained true \
+#          -p:PublishAot=true \
+#          -p:Version=${{ needs.determine_version.outputs.version }} \
+#          -o publish/linux-x64 \
+#          /p:DebugType=None \
+#          /p:DebugSymbols=false
+#    
+#    - name: Create zip archive
+#      run: |
+#        cd publish/linux-x64
+#        chmod +x Xitira.SimpleFileServer.Api
+#        zip -r ../../Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-64.zip *
+#        cd ../..
+#    
+#    - name: Upload Build Artifacts
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64
+#        path: Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
+#  
+#  create-release:
+#    needs: [determine_version,  build-and-release-linux]
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#    
+#    steps:
+#    - name: Download all build artifacts
+#      uses: actions/download-artifact@v4
+#    
+#    - name: Create Release
+#      uses: softprops/action-gh-release@v1
+#      with:
+#        files: |
+#          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-x64.zip
+#          Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64/Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-linux-x64.zip
+#        tag_name: ${{ github.ref_name || format('v{0}', needs.determine_version.outputs.version) }}
+#        name: Xitira.SimpleFileServer.Api v${{ needs.determine_version.outputs.version }}
+#        generate_release_notes: true

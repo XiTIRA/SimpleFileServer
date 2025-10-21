@@ -46,6 +46,8 @@ jobs:
         cd publish\win-x64\
         dir
         Compress-Archive -Path * -DestinationPath "..\..\Xitira.SimpleFileServer.Api-${{ needs.determine_version.outputs.version }}-win-64.zip"
+        cd ..\..
+        dir
       shell: powershell
 
     - name: Upload Build Artifacts

@@ -14,8 +14,7 @@ on:
 
 jobs:
   determine_version:
-    runs-on: 
-      labels: home
+    runs-on: home-arc
     outputs:
       version: ${{ steps.set-version.outputs.version }}
       
@@ -32,8 +31,7 @@ jobs:
     permissions:
       id-token: write      
     needs: determine_version
-    runs-on: 
-      labels: home
+    runs-on: home-arc
     
     steps:
       - uses: actions/checkout@v4
@@ -94,8 +92,7 @@ jobs:
 
   build-and-release-linux:
     needs: determine_version
-    runs-on: 
-      labels: home
+    runs-on: home-arc
 
     steps:
     - uses: actions/checkout@v4
@@ -132,8 +129,7 @@ jobs:
 
   create-release:
     needs: [determine_version,  build-and-release-linux, build-and-release-windows, build-and-release-client]
-    runs-on: 
-      labels: home
+    runs-on: home-arc
     permissions:
       contents: write
 

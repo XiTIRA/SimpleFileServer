@@ -14,7 +14,7 @@ on:
 
 jobs:
   determine_version:
-    runs-on: [self-hosted, source-apps-arc-runners]
+    runs-on: source-apps-arc-runners
     outputs:
       version: ${{ steps.set-version.outputs.version }}
       

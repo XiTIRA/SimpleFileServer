@@ -31,7 +31,7 @@ jobs:
     permissions:
       id-token: write      
     needs: determine_version
-    runs-on:  [self-hosted, source-apps-arc-runners]
+    runs-on:  source-apps-arc-runners
     
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +92,7 @@ jobs:
 
   build-and-release-linux:
     needs: determine_version
-    runs-on:  [self-hosted, source-apps-arc-runners]
+    runs-on:   source-apps-arc-runners
 
     steps:
     - uses: actions/checkout@v4
@@ -129,7 +129,7 @@ jobs:
 
   create-release:
     needs: [determine_version,  build-and-release-linux, build-and-release-windows, build-and-release-client]
-    runs-on:  [self-hosted, source-apps-arc-runners]
+    runs-on:  self-hosted
     permissions:
       contents: write
 
